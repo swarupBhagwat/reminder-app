@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Reminders</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="notif-banner" id="notifBanner" onclick="requestPushPermission()">
+    Tap to enable push notifications on this device
+  </div>
+
+  <div class="header">
+    <h1 id="headerTitle">Today</h1>
+    <div class="header-right">
+      <span class="status-dot" id="telegramDot" title="Telegram"></span>
+    </div>
+  </div>
+
+  <!-- TODAY TAB -->
+  <div class="tab-content active" id="tab-today">
+    <div class="container">
+      <!-- Hero card: date, time, weather, location -->
+      <div class="today-hero" id="todayHero">
+        <div class="hero-date">
+          <span class="hero-day" id="heroDay"></span>
+          <span class="hero-full-date" id="heroFullDate"></span>
+        </div>
+        <div class="hero-time" id="heroTime"></div>
+        <div class="hero-meta">
+          <span class="hero-location" id="heroLocation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="heroLocationText">--</span>
+          </span>
+          <span class="hero-weather" id="heroWeather">
+            <span id="heroWeatherIcon"></span>
+            <span id="heroWeatherText">--</span>
+          </span>
+        </div>
+      </div>
+
+      <div id="todayList"></div>
+    </div>
+  </div>
+
+  <!-- REMINDERS TAB -->
+  <div class="tab-content" id="tab-reminders">
+    <div class="container">
+      <div id="reminderList"></div>
+    </div>
+  </div>
+
+  <!-- TO-DO TAB -->
+  <div class="tab-content" id="tab-todo">
+    <div class="container">
+      <div id="todoList"></div>
+      <div class="completed-section" id="completedSection" style="display:none">
+        <button class="completed-toggle" id="completedToggle">
+          <span id="completedArrow">&#9654;</span> Completed (<span id="completedCount">0</span>)
+        </button>
+        <div id="completedList" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRIORITY TAB -->
+  <div class="tab-content" id="tab-priority">
+    <div class="container">
+      <div class="segmented" id="priorityFilter">
+        <button class="active all" data-filter="all">All</button>
+        <button class="high" data-filter="high">High</button>
+        <button class="medium" data-filter="medium">Medium</button>
+        <button class="low" data-filter="low">Low</button>
+      </div>
+      <div id="priorityList"></div>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" id="fabBtn" aria-label="Add new item">+</button>
+
+  <!-- ADD MODAL -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+
+      <!-- Close button -->
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+
+      <!-- Type: pill selector at the top -->
+      <div class="pill-selector" id="typeToggle">
+        <button class="pill active" data-type="reminder">Reminder</button>
+        <button class="pill" data-type="todo">To-Do</button>
+      </div>
+
+      <form id="addForm" autocomplete="off">
+
+        <!-- Title input -->
+        <div class="input-wrap">
+          <input type="text" id="f-title" class="title-input" required autofocus>
+          <span class="input-hint" id="titleHint">Title</span>
+        </div>
+
+        <!-- Note (reminder only) -->
+        <div id="reminderFields">
+          <div class="input-wrap">
+            <textarea id="f-message" class="note-input" rows="2"></textarea>
+            <span class="input-hint note-hint" id="messageHint">Note</span>
+          </div>
+        </div>
+
+        <!-- Option rows -->
+        <div class="option-list">
+
+          <!-- Date -->
+          <div class="option-row" id="dateRow">
+            <div class="option-icon date-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <span class="option-label" id="dateLabel">Date</span>
+            <input type="date" id="f-date" class="option-value" required>
+          </div>
+
+          <!-- Time (always visible for reminders) -->
+          <div class="option-row" id="timeRow">
+            <div class="option-icon time-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span class="option-label">Time</span>
+            <input type="time" id="f-time" class="option-value" required>
+          </div>
+
+          <!-- Repeat toggle -->
+          <div class="option-row" id="repeatRow">
+            <div class="option-icon repeat-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </div>
+            <span class="option-label">Repeat</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="f-repeat-toggle" onchange="toggleRepeatFields()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Repeat interval (shown when repeat is on) -->
+          <div class="option-row" id="repeatIntervalRow" style="display:none">
+            <div class="option-icon" style="visibility:hidden">
+              <svg width="20" height="20"></svg>
+            </div>
+            <span class="option-label">Every</span>
+            <div class="interval-picker">
+              <input type="number" id="f-repeat-value" class="interval-num" min="1" value="1">
+              <select id="f-repeat-unit" class="interval-unit">
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+                <option value="months">Months</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Priority -->
+          <div class="option-row">
+            <div class="option-icon priority-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            </div>
+            <span class="option-label">Priority</span>
+            <div class="priority-pills" id="prioritySelector">
+              <button type="button" class="p-pill high" data-priority="high">High</button>
+              <button type="button" class="p-pill medium selected" data-priority="medium">Med</button>
+              <button type="button" class="p-pill low" data-priority="low">Low</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Save button -->
+        <button type="submit" class="btn btn-save">Save</button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="today">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Today
+    </button>
+    <button class="nav-item" data-tab="reminders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Reminders
+    </button>
+    <button class="nav-item" data-tab="todo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      To-Do
+    </button>
+    <button class="nav-item" data-tab="priority">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      Priority
+    </button>
+  </nav>
+
+  <script src="/app.js"></script>
+</body>
+</html>
